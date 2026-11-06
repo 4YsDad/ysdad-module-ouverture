@@ -77,7 +77,6 @@ class _YsdadSplashState extends State<YsdadSplash>
   late final AnimationController _fade;
   late final Animation<double> _opacity;
   Timer? _timer;
-  bool _appImageReady = false;
   bool _appImageFailed = false;
   bool _precacheStarted = false;
 
@@ -110,10 +109,8 @@ class _YsdadSplashState extends State<YsdadSplash>
     }
     try {
       await precacheImage(AssetImage(path), context);
-      if (mounted) _appImageReady = true;
     } catch (_) {
       _appImageFailed = true;
-      _appImageReady = false;
     }
   }
 
