@@ -14,7 +14,31 @@ YsdadSplash  →  (popup À propos 1re ouverture)  →  YsdadAuthGate  →  Accu
                       ↑ module À propos (menu burger + popup)
 ```
 
-## 1. Copier 2 fichiers dans votre projet
+## Recommandé : dépendance Git (aucun fichier à copier)
+Dans `pubspec.yaml` de l'appli :
+```yaml
+dependencies:
+  ysdad_ouverture:
+    git:
+      url: https://github.com/4YsDad/ysdad-module-ouverture.git
+      ref: main
+```
+Puis `flutter pub get` (et plus tard `flutter pub upgrade ysdad_ouverture` pour recevoir les changements du module).
+Dépôt privé : la machine doit avoir accès à GitHub (`gh auth login` puis `gh auth setup-git`).
+
+Le logo Ysdad est inclus dans le paquet :
+```dart
+import 'package:ysdad_ouverture/ysdad_ouverture.dart';
+
+home: YsdadSplash(
+  programmerLogoAsset: kYsdadProgrammerLogoPackageAsset, // logo du paquet
+  appImage: 'assets/images/logo-appli.png',             // image de VOTRE appli (dans vos assets)
+  child: const Accueil(),
+),
+```
+Rien d'autre à déclarer pour le logo. Les étapes 1 et 2 ci-dessous ne servent que si vous copiez les fichiers.
+
+## 1. (Ancienne méthode) Copier 2 fichiers dans votre projet
 - `lib/ysdad_ouverture.dart` → dans le dossier `lib/` du projet
 - `assets/ysdad-logo.png` → dans le dossier `assets/` du projet (créez-le s'il n'existe pas)
 
@@ -28,7 +52,7 @@ Sous `flutter:` :
 Puis : `flutter pub get`
 
 ## 3. Utiliser le module (3 lignes)
-Dans `main.dart`, enveloppez votre page d'accueil (ou `YsdadAuthGate`) :
+Dans `main.dart` (avec `import 'ysdad_ouverture.dart';` si copié, ou `import 'package:ysdad_ouverture/ysdad_ouverture.dart';` en dépendance Git), enveloppez votre page d'accueil (ou `YsdadAuthGate`) :
 ```dart
 home: YsdadSplash(
   appImage: 'assets/images/logo-appli.png', // ou null pour sauter cette étape

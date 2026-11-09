@@ -10,7 +10,12 @@ import 'package:flutter/material.dart';
 const Color kYsdadSplashBackground = Color(0xFF121212);
 
 /// Chemin d'asset du logo programmeur Ysdad (à déclarer dans pubspec.yaml).
+/// Valeur par défaut, pour les applis qui ont copié le logo dans leur `assets/`.
 const String kYsdadProgrammerLogoAsset = 'assets/ysdad-logo.png';
+
+/// Logo programmeur inclus dans le paquet `ysdad_ouverture` (dépendance Git) :
+/// `YsdadSplash(programmerLogoAsset: kYsdadProgrammerLogoPackageAsset, ...)`.
+const String kYsdadProgrammerLogoPackageAsset = 'packages/ysdad_ouverture/assets/ysdad-logo.png';
 
 /// Écran d'ouverture Ysdad.
 ///

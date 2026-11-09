@@ -1,0 +1,7 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    # Exemple à copier dans une appli : il importe des fichiers de l'appli.
+    - exemple_integration.dart

@@ -1,0 +1,22 @@
+name: ysdad_ouverture
+description: "Module Ysdad « Ouverture » : écran de démarrage (logo Ysdad 3 s, puis image de l'appli 2 s)."
+version: 1.1.0
+publish_to: none
+repository: https://github.com/4YsDad/ysdad-module-ouverture
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  assets:
+    - assets/ysdad-logo.png
