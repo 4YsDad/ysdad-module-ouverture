@@ -1,9 +1,11 @@
 # Module « Ouverture » — Ysdad 💙
 
 Écran d'ouverture prêt à l'emploi, le même pour toutes vos applis :
-1. **Votre image de programmeur** (logo Ysdad) pendant **3 secondes**, centrée sur fond sombre (#121212), avec un fondu doux.
+1. **Votre image de programmeur** (logo Ysdad) pendant **3 secondes**, avec un fondu doux.
 2. Puis **l'image de l'appli** pendant **2 secondes**, si elle est fournie.
 3. Si aucune image d'appli n'est donnée (`null`) ou si elle ne charge pas → l'appli s'ouvre tout de suite après le logo programmeur.
+
+Chaque image occupe le plus d'espace possible à l'écran, **reste entière** et n'est **jamais déformée** ni rognée. L'espace restant (en haut et en bas, ou sur les côtés) est rempli d'une version floutée et agrandie de la même image, avec un léger voile sombre. Vous pouvez aussi imposer un fond uni avec `backgroundColor`.
 
 Fonctionne sur Android, iPhone et en version web (Flutter).
 
@@ -67,10 +69,10 @@ Voir `exemple_integration.dart` pour un exemple complet avec Connexion + À prop
 ## Options (facultatif)
 - Pas d'image d'appli : `appImage: null` (ou omettez le paramètre)
 - Durées : `programmerDuration: Duration(seconds: 3)`, `appImageDuration: Duration(seconds: 2)`
-- Fond : `backgroundColor: Color(0xFF121212)`
+- Fond uni (à la place du fond flouté) : `backgroundColor: kYsdadSplashBackground` (ou une autre couleur)
 - Autre logo programmeur : `programmerLogoAsset: 'assets/autre.png'`
 - Callback : `onFinished: () { ... }` (appelé juste avant d'afficher `child`)
-- Taille : `logoMaxWidth: 280`
+- Largeur max (par défaut : toute la place disponible) : `logoMaxWidth: 280` pour l'ancien cadrage
 
 ## 4. (Facultatif) Éviter le flash blanc au démarrage natif
 Flutter affiche un écran natif *avant* votre `YsdadSplash`. Pour qu'il soit déjà sombre :
