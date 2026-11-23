@@ -5,6 +5,8 @@
 2. Puis **l'image de l'appli** pendant **2 secondes**, si elle est fournie.
 3. Si aucune image d'appli n'est donnée (`null`) ou si elle ne charge pas → l'appli s'ouvre tout de suite après le logo programmeur.
 
+Pendant le logo Ysdad et l'image de l'appli, le **numéro de version** de l'appli s'affiche en bas de l'écran (ex. « Version 1.0.31 (2031) »). Il est lu automatiquement. Vous pouvez aussi le passer vous-même ou le masquer.
+
 Chaque image occupe le plus d'espace possible à l'écran, **reste entière** et n'est **jamais déformée** ni rognée. L'espace restant (en haut et en bas, ou sur les côtés) est rempli d'une version floutée et agrandie de la même image, avec un léger voile sombre. Vous pouvez aussi imposer un fond uni avec `backgroundColor`.
 
 Fonctionne sur Android, iPhone et en version web (Flutter).
@@ -44,6 +46,8 @@ Rien d'autre à déclarer pour le logo. Les étapes 1 et 2 ci-dessous ne servent
 - `lib/ysdad_ouverture.dart` → dans le dossier `lib/` du projet
 - `assets/ysdad-logo.png` → dans le dossier `assets/` du projet (créez-le s'il n'existe pas)
 
+Si vous copiez les fichiers plutôt que d'utiliser la dépendance Git, ajoutez aussi `package_info_plus` dans le `pubspec.yaml` de l'appli.
+
 ## 2. Modifier `pubspec.yaml`
 Sous `flutter:` :
 ```yaml
@@ -73,6 +77,8 @@ Voir `exemple_integration.dart` pour un exemple complet avec Connexion + À prop
 - Autre logo programmeur : `programmerLogoAsset: 'assets/autre.png'`
 - Callback : `onFinished: () { ... }` (appelé juste avant d'afficher `child`)
 - Largeur max (par défaut : toute la place disponible) : `logoMaxWidth: 280` pour l'ancien cadrage
+- Masquer le numéro de version : `showVersion: false`
+- Imposer le libellé de version : `versionLabel: 'Version 1.0.31 (2031)'` (sinon, il est lu automatiquement)
 
 ## 4. (Facultatif) Éviter le flash blanc au démarrage natif
 Flutter affiche un écran natif *avant* votre `YsdadSplash`. Pour qu'il soit déjà sombre :
@@ -93,4 +99,4 @@ Puis : `dart run flutter_native_splash:create`
 Ce n'est **pas obligatoire** : le module fonctionne sans. Ça évite seulement un bref flash blanc avant le logo Ysdad.
 
 ## Dépendances
-Aucune dépendance externe : seulement Flutter (`material.dart`).
+Flutter (`material.dart`) et `package_info_plus` (pour lire automatiquement le numéro de version de l'appli).
