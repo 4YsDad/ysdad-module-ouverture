@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Couleur de fond sombre assortie au logo Ysdad (évite le flash blanc).
 /// Utile aussi comme fond uni si vous passez [YsdadSplash.backgroundColor].
@@ -19,6 +20,21 @@ const String kYsdadProgrammerLogoAsset = 'assets/ysdad-logo.png';
 /// `YsdadSplash(programmerLogoAsset: kYsdadProgrammerLogoPackageAsset, ...)`.
 const String kYsdadProgrammerLogoPackageAsset =
     'packages/ysdad_ouverture/assets/ysdad-logo.png';
+
+/// Construit le libellé affiché, ex. « Version 1.0.31 (2031) ».
+///
+/// Retourne `null` si la version et le numéro de compilation sont vides.
+String? ysdadFormatVersionLabel({
+  required String version,
+  required String buildNumber,
+}) {
+  final v = version.trim();
+  final b = buildNumber.trim();
+  if (v.isEmpty && b.isEmpty) return null;
+  if (v.isEmpty) return 'Version $b';
+  if (b.isEmpty) return 'Version $v';
+  return 'Version $v ($b)';
+}
 
 /// Écran d'ouverture Ysdad.
 ///
@@ -34,6 +50,11 @@ const String kYsdadProgrammerLogoPackageAsset =
 /// rempli d'une version floutée et agrandie de la même image, avec un
 /// léger voile sombre. Passez [backgroundColor] pour un fond uni à la place.
 ///
+/// Le numéro de version de l'appli s'affiche en bas de l'écran, dès le logo
+/// Ysdad et pendant l'image de l'appli (ex. « Version 1.0.31 (2031) »).
+/// Il est lu automatiquement ; vous pouvez aussi le passer avec
+/// [versionLabel] ou le masquer avec [showVersion] (activé par défaut).
+///
 /// Ordre recommandé dans l'appli :
 /// `YsdadSplash` → (popup À propos 1re ouverture) → `YsdadAuthGate` → accueil.
 class YsdadSplash extends StatefulWidget {
@@ -48,6 +69,8 @@ class YsdadSplash extends StatefulWidget {
     this.fadeDuration = const Duration(milliseconds: 450),
     this.onFinished,
     this.logoMaxWidth = double.infinity,
+    this.showVersion = true,
+    this.versionLabel,
   });
 
   /// Contenu affiché une fois l'ouverture terminée (accueil, AuthGate, etc.).
@@ -82,6 +105,14 @@ class YsdadSplash extends StatefulWidget {
   /// tout en restant entière. Passez `280` pour retrouver l'ancien cadrage.
   final double logoMaxWidth;
 
+  /// Affiche le numéro de version en bas de l'écran d'ouverture (défaut : oui).
+  final bool showVersion;
+
+  /// Libellé de version à afficher tel quel, ex. « Version 1.0.31 (2031) ».
+  /// Si `null` (défaut) et que [showVersion] est vrai, le module lit
+  /// automatiquement la version de l'appli.
+  final String? versionLabel;
+
   @override
   State<YsdadSplash> createState() => _YsdadSplashState();
 }
@@ -96,6 +127,7 @@ class _YsdadSplashState extends State<YsdadSplash>
   Timer? _timer;
   bool _appImageFailed = false;
   bool _precacheStarted = false;
+  String? _versionLabel;
 
   @override
   void initState() {
@@ -107,7 +139,36 @@ class _YsdadSplashState extends State<YsdadSplash>
     if (path == null || path.isEmpty) {
       _appImageFailed = true;
     }
+    _resolveVersionLabel();
     _scheduleNext();
+  }
+
+  void _resolveVersionLabel() {
+    if (!widget.showVersion) {
+      _versionLabel = null;
+      return;
+    }
+    final provided = widget.versionLabel?.trim();
+    if (provided != null && provided.isNotEmpty) {
+      _versionLabel = provided;
+      return;
+    }
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted || !widget.showVersion) return;
+      final label = ysdadFormatVersionLabel(
+        version: info.version,
+        buildNumber: info.buildNumber,
+      );
+      if (label == null || label == _versionLabel) return;
+      setState(() => _versionLabel = label);
+    } catch (_) {
+      // Si la version ne peut pas être lue, on n'affiche rien.
+    }
   }
 
   @override
@@ -214,6 +275,7 @@ class _YsdadSplashState extends State<YsdadSplash>
       opacity: _opacity,
       backgroundColor: widget.backgroundColor,
       logoMaxWidth: widget.logoMaxWidth,
+      versionLabel: widget.showVersion ? _versionLabel : null,
       onImageError: () {
         if (mounted) _onImageError();
       },
@@ -221,7 +283,8 @@ class _YsdadSplashState extends State<YsdadSplash>
   }
 }
 
-/// Composition visuelle : fond flouté (ou couleur imposée) + image entière.
+/// Composition visuelle : fond flouté (ou couleur imposée) + image entière
+/// + numéro de version centré en bas, hors du fondu pour qu'il reste stable.
 class _SplashVisual extends StatelessWidget {
   const _SplashVisual({
     required this.asset,
@@ -229,6 +292,7 @@ class _SplashVisual extends StatelessWidget {
     required this.backgroundColor,
     required this.logoMaxWidth,
     required this.onImageError,
+    this.versionLabel,
   });
 
   final String asset;
@@ -236,6 +300,7 @@ class _SplashVisual extends StatelessWidget {
   final Color? backgroundColor;
   final double logoMaxWidth;
   final VoidCallback onImageError;
+  final String? versionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -244,34 +309,98 @@ class _SplashVisual extends StatelessWidget {
 
     return ColoredBox(
       color: fallback,
-      child: FadeTransition(
-        opacity: opacity,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (useBlur) ...[
-              _BlurredBackdrop(asset: asset),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x42000000),
-                      Color(0x14000000),
-                      Color(0x59000000),
-                    ],
-                    stops: [0.0, 0.45, 1.0],
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          FadeTransition(
+            opacity: opacity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (useBlur) ...[
+                  _BlurredBackdrop(asset: asset),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x42000000),
+                          Color(0x14000000),
+                          Color(0x59000000),
+                        ],
+                        stops: [0.0, 0.45, 1.0],
+                      ),
+                    ),
                   ),
+                ],
+                _ContainedSplashImage(
+                  asset: asset,
+                  logoMaxWidth: logoMaxWidth,
+                  onImageError: onImageError,
                 ),
-              ),
-            ],
-            _ContainedSplashImage(
-              asset: asset,
-              logoMaxWidth: logoMaxWidth,
-              onImageError: onImageError,
+              ],
             ),
-          ],
+          ),
+          if (versionLabel != null && versionLabel!.isNotEmpty)
+            _SplashVersionLabel(
+              label: versionLabel!,
+              backgroundColor: backgroundColor,
+              useBlur: useBlur,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Petit libellé de version, centré en bas, discret mais lisible.
+class _SplashVersionLabel extends StatelessWidget {
+  const _SplashVersionLabel({
+    required this.label,
+    required this.backgroundColor,
+    required this.useBlur,
+  });
+
+  final String label;
+  final Color? backgroundColor;
+  final bool useBlur;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark =
+        useBlur ||
+        (backgroundColor ?? kYsdadSplashBackground).computeLuminance() < 0.45;
+    final textColor = isDark ? Colors.white : const Color(0xDE000000);
+    final shadowColor =
+        isDark ? const Color(0xCC000000) : const Color(0xCCFFFFFF);
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        minimum: const EdgeInsets.only(bottom: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: IgnorePointer(
+            child: Text(
+              label,
+              key: const Key('ysdad-ouverture-version'),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.2,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
+                color: textColor.withValues(alpha: 0.92),
+                shadows: [
+                  Shadow(color: shadowColor, blurRadius: 8),
+                  Shadow(color: shadowColor, blurRadius: 2),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
