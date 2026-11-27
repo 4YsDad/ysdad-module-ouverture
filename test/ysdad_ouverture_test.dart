@@ -179,4 +179,124 @@ void main() {
     expect(find.text('Version 9.9.9 (999)'), findsNothing);
     expect(find.text('Version 1.0.31 (2031)'), findsNothing);
   });
+
+  test('ysdadFormatBuildDate utilise le français et l\'heure de Montréal', () {
+    expect(
+      ysdadFormatBuildDate(DateTime.parse('2026-11-26T19:15:00-05:00')),
+      'publiée le 26 nov. 2026 à 19 h 15',
+    );
+    expect(
+      ysdadFormatBuildDate(DateTime.parse('2026-07-01T23:15:00Z')),
+      'publiée le 1 juill. 2026 à 19 h 15',
+    );
+    expect(
+      ysdadFormatBuildDate(DateTime.parse('2026-11-27T00:15:00Z')),
+      'publiée le 26 nov. 2026 à 19 h 15',
+    );
+  });
+
+  test('ysdadParseBuildDate accepte ISO avec ou sans décalage, et -0500', () {
+    expect(
+      ysdadFormatBuildDate(ysdadParseBuildDate('2026-11-26T19:15:00-05:00')!),
+      'publiée le 26 nov. 2026 à 19 h 15',
+    );
+    expect(
+      ysdadFormatBuildDate(ysdadParseBuildDate('2026-11-26T19:15:00-0500')!),
+      'publiée le 26 nov. 2026 à 19 h 15',
+    );
+    expect(
+      ysdadFormatBuildDate(ysdadParseBuildDate('2026-11-26T19:15:00')!),
+      'publiée le 26 nov. 2026 à 19 h 15',
+    );
+    expect(
+      ysdadFormatBuildDate(ysdadParseBuildDate('2026-07-01T19:15:00')!),
+      'publiée le 1 juill. 2026 à 19 h 15',
+    );
+    expect(ysdadParseBuildDate(''), isNull);
+    expect(ysdadParseBuildDate('pas-une-date'), isNull);
+  });
+
+  test(
+    'ysdadFormatVersionLabel ajoute la date seulement si elle est fournie',
+    () {
+      expect(
+        ysdadFormatVersionLabel(version: '1.0.31', buildNumber: '2031'),
+        'Version 1.0.31 (2031)',
+      );
+      expect(
+        ysdadFormatVersionLabel(
+          version: '1.0.31',
+          buildNumber: '2031',
+          buildDate: DateTime.parse('2026-11-26T19:15:00-05:00'),
+        ),
+        'Version 1.0.31 (2031) · publiée le 26 nov. 2026 à 19 h 15',
+      );
+      expect(
+        ysdadFormatVersionLabel(
+          version: '1.0.31',
+          buildNumber: '2031',
+          buildDate: DateTime.parse('2026-11-26T19:15:00-05:00'),
+          showBuildDate: false,
+        ),
+        'Version 1.0.31 (2031)',
+      );
+    },
+  );
+
+  testWidgets('affiche la date de publication avec la version', (t) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: YsdadSplash(
+          programmerLogoAsset: kYsdadProgrammerLogoPackageAsset,
+          programmerDuration: const Duration(days: 1),
+          buildDate: DateTime.parse('2026-11-26T19:15:00-05:00'),
+          child: const Text('Accueil'),
+        ),
+      ),
+    );
+    await t.pump();
+    expect(
+      find.text('Version 1.0.31 (2031) · publiée le 26 nov. 2026 à 19 h 15'),
+      findsOneWidget,
+    );
+    expect(
+      t.widget<Image>(find.byKey(const Key('ysdad-ouverture-image'))).fit,
+      BoxFit.contain,
+    );
+    expect(find.byType(ImageFiltered), findsOneWidget);
+  });
+
+  testWidgets('sans date, seule la version s\'affiche', (t) async {
+    await t.pumpWidget(
+      const MaterialApp(
+        home: YsdadSplash(
+          programmerLogoAsset: kYsdadProgrammerLogoPackageAsset,
+          programmerDuration: Duration(days: 1),
+          child: Text('Accueil'),
+        ),
+      ),
+    );
+    await t.pump();
+    expect(find.text('Version 1.0.31 (2031)'), findsOneWidget);
+    expect(find.textContaining('publiée le'), findsNothing);
+  });
+
+  testWidgets('showBuildDate: false masque la date même si elle est fournie', (
+    t,
+  ) async {
+    await t.pumpWidget(
+      MaterialApp(
+        home: YsdadSplash(
+          programmerLogoAsset: kYsdadProgrammerLogoPackageAsset,
+          programmerDuration: const Duration(days: 1),
+          buildDate: DateTime.parse('2026-11-26T19:15:00-05:00'),
+          showBuildDate: false,
+          child: const Text('Accueil'),
+        ),
+      ),
+    );
+    await t.pump();
+    expect(find.text('Version 1.0.31 (2031)'), findsOneWidget);
+    expect(find.textContaining('publiée le'), findsNothing);
+  });
 }

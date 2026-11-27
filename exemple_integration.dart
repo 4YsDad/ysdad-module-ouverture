@@ -26,7 +26,7 @@ class MonAppli extends StatelessWidget {
       darkTheme: ThemeData(useMaterial3: true, brightness: Brightness.dark),
       themeMode: ThemeMode.system,
       // 1) Ouverture (logo Ysdad 3 s → image de l'appli 2 s)
-      // La version de l'appli s'affiche en bas, automatiquement.
+      // La version (et la date de publication, si inscrite à la compilation) s'affiche en bas.
       home: YsdadSplash(
         appImage:
             'assets/images/logo-appli.png', // facultatif : null pour sauter
@@ -35,6 +35,8 @@ class MonAppli extends StatelessWidget {
         // backgroundColor: Color(0xFF121212),
         // showVersion: false, // pour masquer le numéro de version
         // versionLabel: 'Version 1.0.31 (2031)', // pour imposer le libellé
+        // showBuildDate: false, // pour masquer la date de publication
+        // buildDate: DateTime(2026, 11, 26, 19, 15),
         child: YsdadAuthGate(
           config: const YsdadConnexionConfig(
             appName: 'Guard Focus',
