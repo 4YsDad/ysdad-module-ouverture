@@ -1,3 +1,8 @@
+## 1.4.0
+- La date et l'heure de publication s'affichent avec le numéro de version, ex. « Version 1.0.31 (2031) · publiée le 26 nov. 2026 à 19 h 15 » (format français, heure de Montréal).
+- La date est inscrite à la compilation avec `--dart-define=YSDAD_BUILD_DATE=…` (ISO 8601). On peut aussi la passer avec `buildDate`, ou la masquer avec `showBuildDate: false` (affichage activé par défaut).
+- Si aucune date n'est fournie, seule la version s'affiche, comme en 1.3.0. L'API existante et le cadrage restent inchangés.
+
 ## 1.3.0
 - Le numéro de version de l'appli s'affiche en bas de l'écran d'ouverture, dès le logo Ysdad et pendant l'image de l'appli (ex. « Version 1.0.31 (2031) »). Texte petit, centré, contrastant avec le fond.
 - La version est lue automatiquement (`package_info_plus`). On peut aussi passer le libellé avec `versionLabel`, ou masquer l'affichage avec `showVersion: false` (affichage activé par défaut).

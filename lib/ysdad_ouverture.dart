@@ -23,17 +23,155 @@ const String kYsdadProgrammerLogoPackageAsset =
 
 /// Construit le libellé affiché, ex. « Version 1.0.31 (2031) ».
 ///
+/// Si [showBuildDate] est vrai et qu'une [buildDate] est fournie, la date
+/// de publication est ajoutée : « Version 1.0.31 (2031) · publiée le 26 nov.
+/// 2026 à 19 h 15 ». Sinon, seul le numéro de version est renvoyé.
+///
 /// Retourne `null` si la version et le numéro de compilation sont vides.
 String? ysdadFormatVersionLabel({
   required String version,
   required String buildNumber,
+  DateTime? buildDate,
+  bool showBuildDate = true,
 }) {
   final v = version.trim();
   final b = buildNumber.trim();
   if (v.isEmpty && b.isEmpty) return null;
-  if (v.isEmpty) return 'Version $b';
-  if (b.isEmpty) return 'Version $v';
-  return 'Version $v ($b)';
+  final label =
+      v.isEmpty ? 'Version $b' : (b.isEmpty ? 'Version $v' : 'Version $v ($b)');
+  return ysdadAppendBuildDate(
+    label,
+    buildDate: buildDate,
+    showBuildDate: showBuildDate,
+  );
+}
+
+/// Ajoute « · publiée le … » à un libellé de version, si une date est
+/// disponible. Sans date, ou si [showBuildDate] est faux, renvoie [label]
+/// inchangé.
+String? ysdadAppendBuildDate(
+  String? label, {
+  DateTime? buildDate,
+  bool showBuildDate = true,
+}) {
+  if (label == null || label.isEmpty) return label;
+  if (!showBuildDate) return label;
+  final date = buildDate ?? ysdadBuildDateFromEnvironment();
+  if (date == null) return label;
+  return '$label · ${ysdadFormatBuildDate(date)}';
+}
+
+/// Date de publication inscrite à la compilation
+/// (`--dart-define=YSDAD_BUILD_DATE=…`, ISO 8601).
+///
+/// Renvoie `null` si la variable n'a pas été fournie ou si elle est invalide.
+DateTime? ysdadBuildDateFromEnvironment() {
+  const raw = String.fromEnvironment('YSDAD_BUILD_DATE');
+  return ysdadParseBuildDate(raw);
+}
+
+/// Analyse une date ISO 8601 et renvoie l'instant correspondant.
+///
+/// Avec un décalage ou un « Z », la valeur est cet instant (ensuite affiché
+/// à l'heure de Montréal). Sans décalage, les chiffres sont interprétés
+/// comme l'heure de Montréal.
+DateTime? ysdadParseBuildDate(String? raw) {
+  var s = raw?.trim() ?? '';
+  if (s.isEmpty) return null;
+  final hasOffset = RegExp(r'(Z|[+-]\d{2}:?\d{2})$').hasMatch(s);
+  s = _normalizeIsoOffset(s);
+  final parsed = DateTime.tryParse(s);
+  if (parsed == null) return null;
+  if (hasOffset) return parsed;
+  return _torontoWallToInstant(
+    parsed.year,
+    parsed.month,
+    parsed.day,
+    parsed.hour,
+    parsed.minute,
+    parsed.second,
+  );
+}
+
+/// Formate la date de publication, ex. « publiée le 26 nov. 2026 à 19 h 15 ».
+///
+/// L'heure affichée est toujours celle de Montréal (America/Toronto).
+String ysdadFormatBuildDate(DateTime date) {
+  final local = _toAmericaToronto(date);
+  const mois = <String>[
+    'janv.',
+    'févr.',
+    'mars',
+    'avr.',
+    'mai',
+    'juin',
+    'juill.',
+    'août',
+    'sept.',
+    'oct.',
+    'nov.',
+    'déc.',
+  ];
+  final minute = local.minute.toString().padLeft(2, '0');
+  return 'publiée le ${local.day} ${mois[local.month - 1]} ${local.year} '
+      'à ${local.hour} h $minute';
+}
+
+/// Accepte à la fois `-05:00` et `-0500`.
+String _normalizeIsoOffset(String s) {
+  final match = RegExp(r'([+-])(\d{2})(\d{2})$').firstMatch(s);
+  if (match == null) return s;
+  return '${s.substring(0, match.start)}${match[1]}${match[2]}:${match[3]}';
+}
+
+/// Convertit un instant vers l'heure murale d'America/Toronto.
+DateTime _toAmericaToronto(DateTime instant) {
+  final utc = instant.toUtc();
+  return utc.add(Duration(hours: _americaTorontoOffsetHours(utc)));
+}
+
+/// Interprète une heure murale de Montréal et renvoie l'instant UTC.
+DateTime _torontoWallToInstant(
+  int year,
+  int month,
+  int day,
+  int hour,
+  int minute, [
+  int second = 0,
+]) {
+  final asEdt = DateTime.utc(
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+  ).add(const Duration(hours: 4));
+  if (_americaTorontoOffsetHours(asEdt) == -4) return asEdt;
+  return DateTime.utc(
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+  ).add(const Duration(hours: 5));
+}
+
+/// Décalage de Toronto par rapport à UTC : -5 (hiver) ou -4 (été).
+/// Règle en vigueur depuis 2007 : 2e dimanche de mars, 7 h UTC, jusqu'au
+/// 1er dimanche de novembre, 6 h UTC.
+int _americaTorontoOffsetHours(DateTime utc) {
+  final start = _nthSundayUtc(utc.year, 3, 2).add(const Duration(hours: 7));
+  final end = _nthSundayUtc(utc.year, 11, 1).add(const Duration(hours: 6));
+  if (!utc.isBefore(start) && utc.isBefore(end)) return -4;
+  return -5;
+}
+
+DateTime _nthSundayUtc(int year, int month, int n) {
+  final first = DateTime.utc(year, month, 1);
+  final add = (DateTime.sunday - first.weekday) % 7;
+  return DateTime.utc(year, month, 1 + add + 7 * (n - 1));
 }
 
 /// Écran d'ouverture Ysdad.
@@ -51,9 +189,13 @@ String? ysdadFormatVersionLabel({
 /// léger voile sombre. Passez [backgroundColor] pour un fond uni à la place.
 ///
 /// Le numéro de version de l'appli s'affiche en bas de l'écran, dès le logo
-/// Ysdad et pendant l'image de l'appli (ex. « Version 1.0.31 (2031) »).
-/// Il est lu automatiquement ; vous pouvez aussi le passer avec
-/// [versionLabel] ou le masquer avec [showVersion] (activé par défaut).
+/// Ysdad et pendant l'image de l'appli, avec la date et l'heure de
+/// publication quand elles sont connues (ex. « Version 1.0.31 (2031) ·
+/// publiée le 26 nov. 2026 à 19 h 15 », heure de Montréal).
+/// La version est lue automatiquement ; vous pouvez aussi la passer avec
+/// [versionLabel] ou la masquer avec [showVersion] (activé par défaut).
+/// La date vient de `--dart-define=YSDAD_BUILD_DATE=…` ou de [buildDate] ;
+/// [showBuildDate] la masque si besoin. Sans date, seule la version s'affiche.
 ///
 /// Ordre recommandé dans l'appli :
 /// `YsdadSplash` → (popup À propos 1re ouverture) → `YsdadAuthGate` → accueil.
@@ -71,6 +213,8 @@ class YsdadSplash extends StatefulWidget {
     this.logoMaxWidth = double.infinity,
     this.showVersion = true,
     this.versionLabel,
+    this.showBuildDate = true,
+    this.buildDate,
   });
 
   /// Contenu affiché une fois l'ouverture terminée (accueil, AuthGate, etc.).
@@ -108,10 +252,19 @@ class YsdadSplash extends StatefulWidget {
   /// Affiche le numéro de version en bas de l'écran d'ouverture (défaut : oui).
   final bool showVersion;
 
-  /// Libellé de version à afficher tel quel, ex. « Version 1.0.31 (2031) ».
+  /// Libellé de version à afficher, ex. « Version 1.0.31 (2031) ».
   /// Si `null` (défaut) et que [showVersion] est vrai, le module lit
-  /// automatiquement la version de l'appli.
+  /// automatiquement la version de l'appli. La date de publication est
+  /// ajoutée ensuite, si elle est disponible et que [showBuildDate] est vrai.
   final String? versionLabel;
+
+  /// Affiche la date et l'heure de publication avec la version (défaut : oui).
+  /// Sans date connue, seule la version s'affiche, comme avant.
+  final bool showBuildDate;
+
+  /// Date de publication à afficher. Si `null` (défaut), le module lit
+  /// `YSDAD_BUILD_DATE` (ISO 8601) inscrite à la compilation.
+  final DateTime? buildDate;
 
   @override
   State<YsdadSplash> createState() => _YsdadSplashState();
@@ -150,10 +303,18 @@ class _YsdadSplashState extends State<YsdadSplash>
     }
     final provided = widget.versionLabel?.trim();
     if (provided != null && provided.isNotEmpty) {
-      _versionLabel = provided;
+      _versionLabel = _withBuildDate(provided);
       return;
     }
     _loadVersion();
+  }
+
+  String? _withBuildDate(String? label) {
+    return ysdadAppendBuildDate(
+      label,
+      buildDate: widget.buildDate,
+      showBuildDate: widget.showBuildDate,
+    );
   }
 
   Future<void> _loadVersion() async {
@@ -163,6 +324,8 @@ class _YsdadSplashState extends State<YsdadSplash>
       final label = ysdadFormatVersionLabel(
         version: info.version,
         buildNumber: info.buildNumber,
+        buildDate: widget.buildDate,
+        showBuildDate: widget.showBuildDate,
       );
       if (label == null || label == _versionLabel) return;
       setState(() => _versionLabel = label);
@@ -386,7 +549,7 @@ class _SplashVersionLabel extends StatelessWidget {
               label,
               key: const Key('ysdad-ouverture-version'),
               textAlign: TextAlign.center,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 13,
